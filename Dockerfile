@@ -10,7 +10,7 @@ RUN yum -y install openssh-server sudo nano epel-release openssl certmonger; sys
 RUN echo 'root:33103255235331325230' | chpasswd
 RUN adduser pos && \
 	echo 'pos:ol2432sn324231024113310' | chpasswd && \
-	usermod -aG wheel fmpos
+	usermod -aG wheel pos
 	
 # Configure SSHD
 RUN mkdir -p /var/run/sshd ; chmod -rx /var/run/sshd
