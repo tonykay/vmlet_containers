@@ -1,16 +1,26 @@
-FROM centos/systemd
+FROM registry.access.redhat.com/ubi8/ubi-init
 
-MAINTAINER Oleg Snegirev <ol.snegirev@gmail.com>
+MAINTAINER Tony Kay (tok) tok@redhat.com
 # https://gist.github.com/lenchevsky/7eba11bd491e70105de3600ec9ec1292
 
+ARG RHN_PASSWORD 
+ARG RHN_USERNAME
+ENV RHN_PASSWORD=$RHN_PASSWORD
+ENV RHN_USERNAME=$RHN_USERNAME
+
 # Install packages
-RUN yum -y install openssh-server sudo nano epel-release openssl certmonger; systemctl enable sshd.service
+
+#RUN subscription-manager register --auto-attach --username ${RHN_USERNAME} --password ${RHN_PASSWORD} ; \
+#    yum install -y openssh-server openssl certmonger; \
+
+RUN    systemctl enable sshd.service
 
 # Enable root and pos accounts
+
 RUN echo 'root:33103255235331325230' | chpasswd
-RUN adduser pos && \
-	echo 'pos:ol2432sn324231024113310' | chpasswd && \
-	usermod -aG wheel pos
+RUN adduser vagrant && \
+    echo 'vagrant:ol2432sn324231024113310' | chpasswd && \
+    usermod -aG wheel vagrant
 	
 # Configure SSHD
 RUN mkdir -p /var/run/sshd ; chmod -rx /var/run/sshd
@@ -23,22 +33,24 @@ RUN sed -ri 's/UsePAM yes/#UsePAM yes/g' /etc/ssh/sshd_config
 RUN sed -ri 's/#UsePAM no/UsePAM no/g' /etc/ssh/sshd_config
 
 # Deploy ssh keys
-RUN mkdir /root/.ssh/ && \
-	echo "ssh-rsa AAAAB3Nz4........l9Ns5p989oHLcSGJ" > ~/.ssh/authorized_keys && \
-	chmod 700 ~/.ssh && \
+RUN mkdir /root/.ssh/ &&                  \
+	echo ${FOO} > ~/.ssh/authorized_keys && \
+	chmod 700 ~/.ssh &&                     \
 	chmod 600 ~/.ssh/authorized_keys
 
-RUN mkdir /home/pos/.ssh/ && \
-	echo "ssh-rsa AAAAB3NzaC........9Ns5p989oHLcSGJ" > /home/pos/.ssh/authorized_keys && \
-	chmod 700 /home/pos/.ssh && \
-	chmod 600 /home/pos/.ssh/authorized_keys && \
-	chown -R pos:pos /home/pos/.ssh/
+RUN mkdir /home/vagrant/.ssh/ && \
+	echo "${FOO}" > /home/vagrant/.ssh/authorized_keys &&   \
+	chmod 700 /home/vagrant/.ssh &&                         \
+	chmod 600 /home/vagrant/.ssh/authorized_keys &&         \
+	chown -R vagrant:vagrant /home/vagrant/.ssh/ &&         \
+  bash -c 'echo "vagrant ALL=(ALL:ALL) NOPASSWD: ALL" >> /etc/sudoers'
 
-# Configure pos
-RUN bash -c 'echo "pos ALL=(ALL:ALL) NOPASSWD: ALL" | (EDITOR="tee -a" visudo)'
+# Configure vagrant
+# RUN bash -c 'echo "vagrant ALL=(ALL:ALL) NOPASSWD: ALL" | (EDITOR="tee -a" visudo)'
 
 EXPOSE 22
-EXPOSE 3306
-EXPOSE 8080
+#EXPOSE 3306
+#EXPOSE 8080
 
-CMD ["/usr/sbin/init"]
+CMD ["/usr/sbin/sshd"]
+#CMD ["/usr/sbin/init"]
