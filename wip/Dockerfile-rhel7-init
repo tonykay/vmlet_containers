@@ -1,0 +1,26 @@
+FROM registry.redhat.io/rhel7/rhel:7.9
+LABEL maintainer="Red Hat, Inc."
+
+LABEL com.redhat.component="rhel7-init-container"
+LABEL name="rhel7/rhel7-init"
+LABEL version="7.9"
+
+LABEL summary="This container image configures systemd for an OCI container and enables the ability to run one or more services in a RHEL 7 user space using unit files and/or init scripts."
+LABEL description="The Red Hat Enterprise Linux Init image is designed to be a fully supported foundation for your containerized applications based on systemd init system. This container image configures systemd for an OCI container and enables the ability to run one or more services in a RHEL 7 user space using unit files and/or init scripts.  This image is maintained by Red Hat and updated regularly. Use this image just like you would a regular Red Hat Enterprise Linux distribution. Tools like yum, gzip, and bash are provided by default. To run your favourite daemon, build on top of this image by `yum -y install <daemon> && systemctl enable <daemon>`. To use it on a host system that does not have oci-systemd-hook, run the container with additional options `docker run -d -P --tmpfs /run --tmpfs /tmp -v /sys/fs/cgroup:/sys/fs/cgroup` (oci-systemd-hook takes care of mounting the extra filesystems on Red Hat Enterprise Linux)."
+LABEL io.k8s.display-name="Red Hat Enterprise Linux 7 Init"
+LABEL io.openshift.expose-services=""
+LABEL usage="Do not use directly. Use as a base image for daemons. Install chosen packages and 'systemctl enable' them."
+
+#systemd recognizes "container=docker" and does not recognize ocid but it does not make any difference except for the welcome message
+#avoid mentioning trademarked docker
+#sosreport should support it soon
+ENV container=oci
+
+CMD ["/sbin/init"]
+
+STOPSIGNAL SIGRTMIN+3
+
+#mask systemd-machine-id-commit.service - partial fix for https://bugzilla.redhat.com/show_bug.cgi?id=1472439
+RUN systemctl mask systemd-remount-fs.service dev-hugepages.mount sys-fs-fuse-connections.mount systemd-logind.service getty.target console-getty.service systemd-udev-trigger.service systemd-udevd.service systemd-random-seed.service systemd-machine-id-commit.service
+
+#procps-ng is already in rhel base image, do not install

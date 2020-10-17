@@ -1,0 +1,47 @@
+FROM registry.redhat.io/rhel7/rhel:7.9
+
+
+# ssh, systemd, passwordless sudo container for ansible target use etc
+
+LABEL maintainer="Tok - Tony Kay"
+
+ENV ssh_port=22
+
+ARG RHN_PASSWORD
+ARG RHN_USERNAME
+ENV RHN_PASSWORD=$RHN_PASSWORD
+ENV RHN_USERNAME=$RHN_USERNAME
+
+# install ssh server and configure 
+# setup the vagrant user, vagrant insecure key, passwordless sudo
+
+#RUN subscription-manager register --auto-attach --username ${RHN_USERNAME} --password ${RHN_PASSWORD} 
+RUN subscription-manager register --auto-attach --username ankay@redhat.com --password Okaya8tok!
+
+ENV user=vagrant
+RUN    yum install -y openssh-server sudo && \
+# setup sshd, install sudo
+    echo "RSAAuthentication yes" >> /etc/ssh/sshd_config && \
+    echo "PubkeyAuthentication yes" >> /etc/ssh/sshd_config && \
+    ssh-keygen -t rsa -f /etc/ssh/ssh_host_rsa_key && \
+    systemctl enable sshd.service && \
+# setup user, defaults to vagrant and ssh keys, use COPY to inject your own
+    useradd ${user:-vagrant} && \ 
+    mkdir -p /home/${user:-vagrant}/.ssh && \
+    curl -LSs https://raw.githubusercontent.com/hashicorp/vagrant/master/keys/vagrant.pub > /home/vagrant/.ssh/authorized_keys && \
+    chmod 600 /home/${user:-vagrant}/.ssh/authorized_keys && chmod 700 /home/${user:-vagrant}/.ssh && \
+    chown -R ${user:-vagrant}:${user:-vagrant} /home/${user:-vagrant}/.ssh && \
+# setup passwordless sudo for user
+    echo "${user:-vagrant} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers && \
+# clean up
+    yum clean all && \
+    rm -rf /var/cache/yum
+
+# COPY centos-sshd_config centos-sshd_config
+
+# expose ssh port, defaults to 22
+
+EXPOSE ${ssh_port:-22}
+EXPOSE 8888
+
+CMD ["/sbin/init"]
