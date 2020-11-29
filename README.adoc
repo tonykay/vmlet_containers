@@ -4,3 +4,12 @@ Build configurations for _heavy_ containers built for use with Ansible collectio
 `tonykay.envy` typicall with init/systemd enabled
 
 
+=== Building a Container
+
+
+docker build -t rhel8-ssh-test:8.3 -f Dockerfile-test-rhel8 --build-arg RHN_USERNAME=${RHN_USERNAME} --build-arg RHN_PASSWORD=${RHN_PASSWORD} .\
+
+=== Running a Container
+
+
+docker run --rm -d -p 22 --name rhel83d --privileged rhel8-ssh-test:8.3
