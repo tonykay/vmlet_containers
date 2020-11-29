@@ -17,8 +17,10 @@ ARG RHN_PASSWORD
 ARG RHN_USERNAME
 
 ENV SSH_PORT=22
-ENV SSH_USER=vagrant
-ENV SSH_KEY_URL=https://raw.githubusercontent.com/hashicorp/vagrant/master/keys/vagrant.pub
+ENV SSH_USER=devops
+ENV SSH_KEY_NAME=devops
+ENV SSH_PUBLIC_KEY_URL=http://www.opentlc.com/download/ansible_bootcamp/ssh_keys/provision_key.pub
+ENV SSH_PRIVATE_KEY_URL=http://www.opentlc.com/download/ansible_bootcamp/ssh_keys/provision_key.pem
 
 # 1) Register to Red Hat Network (a yum server or EPEL would be an alternative
 # 2) Install, configure, and enable sshd
@@ -34,9 +36,10 @@ RUN subscription-manager register --auto-attach --username ${RHN_USERNAME} --pas
     systemctl enable sshd.service && \
     useradd ${SSH_USER} && \ 
     mkdir -p /home/${SSH_USER}/.ssh && \
-    curl -LSs ${SSH_KEY_URL} > /home/${SSH_USER}/.ssh/authorized_keys && \
-    # curl -LSs https://raw.githubusercontent.com/hashicorp/vagrant/master/keys/vagrant.pub > /home/${SSH_USER}/.ssh/authorized_keys && \
+    curl -LSs ${SSH_PUBLIC_KEY_URL} >> /home/${SSH_USER}/.ssh/authorized_keys && \
     chmod 600 /home/${SSH_USER}/.ssh/authorized_keys && chmod 700 /home/${SSH_USER}/.ssh && \
+    curl -s ${SSH_PRIVATE_KEY_URL} -o /home/${SSH_USER}/.ssh/${SSH_KEY_NAME}.pem && \
+    chmod 0400 /home/${SSH_USER}/.ssh/${SSH_KEY_NAME} && \
     chown -R ${SSH_USER}:${SSH_USER:-vagrant} /home/${SSH_USER}/.ssh && \
     echo "${SSH_USER} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers && \
     yum clean all && \

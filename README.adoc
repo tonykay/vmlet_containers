@@ -1,0 +1,6 @@
+== Overview
+
+Build configurations for _heavy_ containers built for use with Ansible collection
+`tonykay.envy` typicall with init/systemd enabled
+
+
