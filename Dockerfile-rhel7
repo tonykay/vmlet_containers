@@ -15,8 +15,7 @@ ENV RHN_USERNAME=$RHN_USERNAME
 # install ssh server and configure 
 # setup the vagrant user, vagrant insecure key, passwordless sudo
 
-#RUN subscription-manager register --auto-attach --username ${RHN_USERNAME} --password ${RHN_PASSWORD} 
-RUN subscription-manager register --auto-attach --username ankay@redhat.com --password Okaya8tok!
+RUN subscription-manager register --auto-attach --username ${RHN_USERNAME} --password ${RHN_PASSWORD} 
 
 ENV user=vagrant
 RUN    yum install -y openssh-server sudo && \
