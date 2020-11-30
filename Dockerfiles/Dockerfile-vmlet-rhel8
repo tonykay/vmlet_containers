@@ -1,4 +1,5 @@
-FROM registry.access.redhat.com/ubi8/ubi-init 
+ARG RHEL_VERSION
+FROM registry.access.redhat.com/ubi8/ubi-init:${RHEL_VERSION:-latest}
 
 # ssh, systemd, passwordless sudo container for ansible target use etc
 #
@@ -24,8 +25,7 @@ ENV SSH_PRIVATE_KEY_URL=http://www.opentlc.com/download/ansible_bootcamp/ssh_key
 
 # 1) Register to Red Hat Network (a yum server or EPEL would be an alternative
 # 2) Install, configure, and enable sshd
-# 3) Add a user and ssh public key - NB consider NOT using vagrant or at least 
-#    use a secure key
+# 3) Add a user and ssh public key 
 # 4) OPTIONAL, enable passwordless sudo   
 
 RUN subscription-manager register --auto-attach --username ${RHN_USERNAME} --password ${RHN_PASSWORD} && \
@@ -39,8 +39,8 @@ RUN subscription-manager register --auto-attach --username ${RHN_USERNAME} --pas
     curl -LSs ${SSH_PUBLIC_KEY_URL} >> /home/${SSH_USER}/.ssh/authorized_keys && \
     chmod 600 /home/${SSH_USER}/.ssh/authorized_keys && chmod 700 /home/${SSH_USER}/.ssh && \
     curl -s ${SSH_PRIVATE_KEY_URL} -o /home/${SSH_USER}/.ssh/${SSH_KEY_NAME}.pem && \
-    chmod 0400 /home/${SSH_USER}/.ssh/${SSH_KEY_NAME} && \
-    chown -R ${SSH_USER}:${SSH_USER:-vagrant} /home/${SSH_USER}/.ssh && \
+    chmod 0400 /home/${SSH_USER}/.ssh/${SSH_KEY_NAME}.pem && \
+    chown -R ${SSH_USER}:${SSH_USER} /home/${SSH_USER}/.ssh && \
     echo "${SSH_USER} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers && \
     yum clean all && \
     rm -rf /var/cache/yum
