@@ -14,8 +14,6 @@ LABEL maintainer="Tok - Tony Kay tony.g.kay@gmail.com"
 # docker build -t rhel8-ssh -f Dockerfile-rhel8 --build-arg RHN_USERNAME=${RHN_USERNAME} --build-arg
 # RHN_PASSWORD=${RHN_PASSWORD} .
 
-ARG RHN_PASSWORD
-ARG RHN_USERNAME
 
 ENV SSH_PORT=22
 ENV SSH_USER=devops
@@ -28,8 +26,7 @@ ENV SSH_PRIVATE_KEY_URL=http://www.opentlc.com/download/ansible_bootcamp/ssh_key
 # 3) Add a user and ssh public key 
 # 4) OPTIONAL, enable passwordless sudo   
 
-RUN subscription-manager register --auto-attach --username ${RHN_USERNAME} --password ${RHN_PASSWORD} && \
-    yum install -y openssh-server sudo && \
+RUN yum install -y openssh-server sudo && \
     echo "RSAAuthentication yes" >> /etc/ssh/sshd_config && \
     echo "PubkeyAuthentication yes" >> /etc/ssh/sshd_config && \
     ssh-keygen -t rsa -f /etc/ssh/ssh_host_rsa_key && \

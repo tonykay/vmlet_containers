@@ -69,14 +69,11 @@ RUN subscription-manager register --auto-attach --username ${RHN_USERNAME} --pas
     chmod 0400 /home/${SSH_USER}/.ssh/config && \
     echo "${SSH_USER} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers && \
     yum clean all && \
+    subscription-manager unregister && \
     rm -rf /var/cache/yum
-
-# expose ssh port, defaults to 22
 
 EXPOSE ${SSH_PORT:-22}
 
-# Consider using CMD?
-# CMD ["/sbin/init"]
+# ENTRYPOINT ["/sbin/init"]
 
-ENTRYPOINT ["/sbin/init"]
-
+CMD ["/sbin/init"]

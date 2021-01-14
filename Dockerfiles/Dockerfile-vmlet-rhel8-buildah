@@ -32,9 +32,9 @@ COPY ./ssh_config /tmp/ssh_config
 
 RUN subscription-manager register --auto-attach --username ${RHN_USERNAME} --password ${RHN_PASSWORD} && \
     subscription-manager repos --enable ansible-2.9-for-rhel-8-x86_64-rpms && \
-    yum install -y --allowerasing \
+    yum install --allowerasing -y \
         ansible \
-        bind-utils \
+        bind-utils buildah \
         coreutils cpio curl \
         file \
         git gzip \
@@ -45,9 +45,9 @@ RUN subscription-manager register --auto-attach --username ${RHN_USERNAME} --pas
         man man-pages \
         nano \
         openssh-server \
-        python36 \
+        podman python36 \
         quota \
-        sed sudo \
+        sed skopeo sudo \
         tar tcpdump tmux tree \
         unzip \
         vim \
