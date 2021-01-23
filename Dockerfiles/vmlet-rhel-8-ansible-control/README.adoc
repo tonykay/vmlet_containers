@@ -1,0 +1,22 @@
+== Overview
+
+An Ansible RHEL based _"Control Node"_
+
+
+=== Building
+
+You will need a Red Hat Network Subscription
+
+[source, bash]
+----
+
+docker build -f Dockerfile-vmlet-rhel-8-ansible-control \
+    -t vmlet-rhel-8-ansible-control \
+    --build-arg RHN_USERNAME=${RHN_USERNAME} \
+    --build-arg RHN_PASSWORD=${RHN_PASSWORD} \
+    --build-arg=RHEL_VERSION=8.3 .
+
+----
+
+
+=== `ssh` configuration

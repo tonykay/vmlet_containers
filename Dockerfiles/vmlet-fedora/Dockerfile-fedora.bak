@@ -1,0 +1,50 @@
+FROM fedora
+
+MAINTAINER Tok (Tony Kay) tony.g.kay@gmail.com 
+
+# https://gist.github.com/lenchevsky/7eba11bd491e70105de3600ec9ec1292
+
+# Install packages
+RUN dnf -y install openssh-server sudo nano  openssl certmonger; systemctl enable sshd.service
+
+# Enable root and vagrant accounts
+RUN echo 'root:vagrant' | chpasswd
+RUN adduser vagrant && \
+	echo 'vagrant:vagrant' | chpasswd && \
+	usermod -aG wheel vagrant
+	
+# Configure SSHD
+RUN mkdir -p /var/run/sshd ; chmod -rx /var/run/sshd
+# http://stackoverflow.com/questions/2419412/ssh-connection-stop-at-debug1-ssh2-msg-kexinit-sent
+RUN ssh-keygen -t rsa -f /etc/ssh/ssh_host_rsa_key
+# Bad security, add a user and sudo instead!
+RUN sed -ri 's/#PermitRootLogin yes/PermitRootLogin yes/g' /etc/ssh/sshd_config
+RUN echo "PasswordAuthentication yes" >> /etc/ssh/sshd_config
+# http://stackoverflow.com/questions/18173889/cannot-access-centos-sshd-on-docker
+RUN sed -ri 's/UsePAM yes/#UsePAM yes/g' /etc/ssh/sshd_config
+RUN sed -ri 's/#UsePAM no/UsePAM no/g' /etc/ssh/sshd_config
+
+
+# Deploy ssh keys
+RUN mkdir /root/.ssh/ && \
+	echo "ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEA6NF8iallvQVp22WDkTkyrtvp9eWW6A8YVr+kz4TjGYe7gHzIw+niNltGEFHzD8+v1I2YJ6oXevct1YeS0o9HZyN1Q9qgCgzUFtdOKLv6IedplqoPkcmF0aYet2PkEDo3MlTBckFXPITAMzF8dJSIFo9D8HfdOV0IAdx4O7PtixWKn5y2hMNG0zQPyUecp4pzC6kivAIhyfHilFR61RGL+GPXQ2MWZWFYbAGjyiYJnAmCP3NOTd0jMZEnDkbUvxhMmBYSdETk1rRgm+R4LOzFUGaHqHDLKLX+FIPKcF96hrucXzcWyLbIbEgE98OHlnVYCzRdK8jlqm8tehUc9c9WhQ== vagrant insecure public key" > ~/.ssh/authorized_keys && \
+	chmod 700 ~/.ssh && \
+	chmod 600 ~/.ssh/authorized_keys
+
+#ADD /Users/tok/.ssh/vagrant.pub /root/.ssh/authorized_keys
+#ADD /Users/tok/.ssh/vagrant.pub /home/vagrant/.ssh/authorized_keys
+
+RUN mkdir /home/vagrant/.ssh/ && \
+	echo "ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEA6NF8iallvQVp22WDkTkyrtvp9eWW6A8YVr+kz4TjGYe7gHzIw+niNltGEFHzD8+v1I2YJ6oXevct1YeS0o9HZyN1Q9qgCgzUFtdOKLv6IedplqoPkcmF0aYet2PkEDo3MlTBckFXPITAMzF8dJSIFo9D8HfdOV0IAdx4O7PtixWKn5y2hMNG0zQPyUecp4pzC6kivAIhyfHilFR61RGL+GPXQ2MWZWFYbAGjyiYJnAmCP3NOTd0jMZEnDkbUvxhMmBYSdETk1rRgm+R4LOzFUGaHqHDLKLX+FIPKcF96hrucXzcWyLbIbEgE98OHlnVYCzRdK8jlqm8tehUc9c9WhQ== vagrant insecure public key" > /home/vagrant/.ssh/authorized_keys && \
+	chmod 700 /home/vagrant/.ssh && \
+	chmod 600 /home/vagrant/.ssh/authorized_keys && \
+	chown -R vagrant:vagrant /home/vagrant/.ssh/
+
+# Configure vagrant
+RUN bash -c 'echo "vagrant ALL=(ALL:ALL) NOPASSWD: ALL" | (EDITOR="tee -a" visudo)'
+
+EXPOSE 22
+#EXPOSE 3306
+#EXPOSE 8080
+
+CMD ["/usr/sbin/init"]

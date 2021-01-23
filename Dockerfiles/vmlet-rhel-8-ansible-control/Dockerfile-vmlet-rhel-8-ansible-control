@@ -9,19 +9,9 @@ FROM registry.access.redhat.com/ubi8/ubi-init:${RHEL_VERSION:-latest}
 
 LABEL maintainer="Tok - Tony Kay tony.g.kay@gmail.com"
 
-# Red Hat Subscription creds need to be supplied via --build-args
-#
-# docker build -t rhel8-ssh -f Dockerfile-rhel8 --build-arg RHN_USERNAME=${RHN_USERNAME} --build-arg
-# RHN_PASSWORD=${RHN_PASSWORD} .
-
-ARG RHN_PASSWORD
-ARG RHN_USERNAME
-
 ENV SSH_PORT=22
 ENV SSH_USER=devops
-ENV SSH_KEY_NAME=devops
-
-# These keys are "well known" like vagrant keys - they are NOT for production use
+ENV SSH_KEY_NAME=provision_key.pem
 ENV SSH_PUBLIC_KEY_URL=http://www.opentlc.com/download/ansible_bootcamp/ssh_keys/provision_key.pub
 ENV SSH_PRIVATE_KEY_URL=http://www.opentlc.com/download/ansible_bootcamp/ssh_keys/provision_key.pem
 
@@ -30,8 +20,31 @@ ENV SSH_PRIVATE_KEY_URL=http://www.opentlc.com/download/ansible_bootcamp/ssh_key
 # 3) Add a user and ssh public key 
 # 4) OPTIONAL, enable passwordless sudo   
 
-RUN subscription-manager register --auto-attach --username ${RHN_USERNAME} --password ${RHN_PASSWORD} && \
-    yum install -y openssh-server sudo && \
+COPY ssh_config /tmp/ssh_config
+
+RUN --mount=type=secret,id=rhn,dst=/tmp/rhn_subscription.sh bash /tmp/rhn_subscription.sh && \
+    subscription-manager repos --enable ansible-2.9-for-rhel-8-x86_64-rpms && \
+    yum install -y --allowerasing \
+        ansible \
+        bind-utils \
+        coreutils cpio curl \
+        file \
+        git gzip \
+        hardlink hostname \
+        info iputils iproute \
+        jq \
+        less \
+        man man-pages \
+        nano \
+        openssh-server \
+        python36 \
+        quota \
+        sed sudo \
+        tar tcpdump tmux tree \
+        unzip \
+        vim \
+        wget which \
+        yum-utils  && \
     echo "RSAAuthentication yes" >> /etc/ssh/sshd_config && \
     echo "PubkeyAuthentication yes" >> /etc/ssh/sshd_config && \
     ssh-keygen -t rsa -f /etc/ssh/ssh_host_rsa_key && \
@@ -40,18 +53,22 @@ RUN subscription-manager register --auto-attach --username ${RHN_USERNAME} --pas
     mkdir -p /home/${SSH_USER}/.ssh && \
     curl -LSs ${SSH_PUBLIC_KEY_URL} >> /home/${SSH_USER}/.ssh/authorized_keys && \
     chmod 600 /home/${SSH_USER}/.ssh/authorized_keys && chmod 700 /home/${SSH_USER}/.ssh && \
-    curl -s ${SSH_PRIVATE_KEY_URL} -o /home/${SSH_USER}/.ssh/${SSH_KEY_NAME}.pem && \
-    chmod 0400 /home/${SSH_USER}/.ssh/${SSH_KEY_NAME}.pem && \
+    curl -s ${SSH_PRIVATE_KEY_URL} -o /home/${SSH_USER}/.ssh/${SSH_KEY_NAME} && \
+    chmod 0400 /home/${SSH_USER}/.ssh/${SSH_KEY_NAME} && \
     chown -R ${SSH_USER}:${SSH_USER} /home/${SSH_USER}/.ssh && \
+    mv /tmp/ssh_config /home/${SSH_USER}/.ssh/config && \
+    chown ${SSH_USER} /home/${SSH_USER}/.ssh/config && \
+    chmod 0400 /home/${SSH_USER}/.ssh/config && \
     echo "${SSH_USER} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers && \
-    subscription-manager unregister && \
     yum clean all && \
+    subscription-manager unregister && \
     rm -rf /var/cache/yum
 
 EXPOSE ${SSH_PORT:-22}
 
-COPY docker-entrypoint.sh /tmp/docker-entrypoint.sh
+COPY docker-entrypoint.sh /docker-entrypoint.sh
 
-ENTRYPOINT ["/tmp/docker-entrypoint.sh"]
+ENTRYPOINT ["/docker-entrypoint.sh"]
 
 CMD ["/sbin/init"]
+

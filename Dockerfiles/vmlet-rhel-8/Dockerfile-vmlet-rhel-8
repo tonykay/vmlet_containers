@@ -1,5 +1,8 @@
+# syntax = docker/dockerfile:1.0-experimental
+
+
 ARG RHEL_VERSION
-FROM registry.access.redhat.com/ubi7/ubi-init:${RHEL_VERSION:-latest}
+FROM registry.access.redhat.com/ubi8/ubi-init:${RHEL_VERSION:-latest}
 
 # ssh, systemd, passwordless sudo container for ansible target use etc
 #
@@ -9,17 +12,11 @@ FROM registry.access.redhat.com/ubi7/ubi-init:${RHEL_VERSION:-latest}
 
 LABEL maintainer="Tok - Tony Kay tony.g.kay@gmail.com"
 
-# Red Hat Subscription creds need to be supplied via --build-args
-#
-# docker build -t rhel8-ssh -f Dockerfile-rhel8 --build-arg RHN_USERNAME=${RHN_USERNAME} --build-arg
-# RHN_PASSWORD=${RHN_PASSWORD} .
-
-ARG RHN_PASSWORD
-ARG RHN_USERNAME
-
 ENV SSH_PORT=22
 ENV SSH_USER=devops
-ENV SSH_KEY_NAME=provision_key.pem
+ENV SSH_KEY_NAME=devops
+
+# These keys are "well known" like vagrant keys - they are NOT for production use
 ENV SSH_PUBLIC_KEY_URL=http://www.opentlc.com/download/ansible_bootcamp/ssh_keys/provision_key.pub
 ENV SSH_PRIVATE_KEY_URL=http://www.opentlc.com/download/ansible_bootcamp/ssh_keys/provision_key.pem
 
@@ -28,9 +25,7 @@ ENV SSH_PRIVATE_KEY_URL=http://www.opentlc.com/download/ansible_bootcamp/ssh_key
 # 3) Add a user and ssh public key 
 # 4) OPTIONAL, enable passwordless sudo   
 
-COPY ./ssh_config /tmp/ssh_config
-
-RUN subscription-manager register --auto-attach --username ${RHN_USERNAME} --password ${RHN_PASSWORD} && \
+RUN --mount=type=secret,id=rhn,dst=/tmp/rhn_subscription.sh bash /tmp/rhn_subscription.sh && \
     yum install -y openssh-server sudo && \
     echo "RSAAuthentication yes" >> /etc/ssh/sshd_config && \
     echo "PubkeyAuthentication yes" >> /etc/ssh/sshd_config && \
@@ -39,25 +34,19 @@ RUN subscription-manager register --auto-attach --username ${RHN_USERNAME} --pas
     useradd ${SSH_USER} && \ 
     mkdir -p /home/${SSH_USER}/.ssh && \
     curl -LSs ${SSH_PUBLIC_KEY_URL} >> /home/${SSH_USER}/.ssh/authorized_keys && \
-    chmod 600 /home/${SSH_USER}/.ssh/authorized_keys && \
-    curl -s ${SSH_PRIVATE_KEY_URL} -o /home/${SSH_USER}/.ssh/${SSH_KEY_NAME} && \
-    chmod 0400 /home/${SSH_USER}/.ssh/${SSH_KEY_NAME} && \
-    mv /tmp/ssh_config /home/${SSH_USER}/.ssh/config && \
-    chmod 0400 /home/${SSH_USER}/.ssh/config && \
-    chmod 700 /home/${SSH_USER}/.ssh && \
+    chmod 600 /home/${SSH_USER}/.ssh/authorized_keys && chmod 700 /home/${SSH_USER}/.ssh && \
+    curl -s ${SSH_PRIVATE_KEY_URL} -o /home/${SSH_USER}/.ssh/${SSH_KEY_NAME}.pem && \
+    chmod 0400 /home/${SSH_USER}/.ssh/${SSH_KEY_NAME}.pem && \
     chown -R ${SSH_USER}:${SSH_USER} /home/${SSH_USER}/.ssh && \
     echo "${SSH_USER} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers && \
-    yum install -y bind-utils iputils vim tree && \
-    yum clean all && \
     subscription-manager unregister && \
+    yum clean all && \
     rm -rf /var/cache/yum
-
-# expose ssh port, defaults to 22
 
 EXPOSE ${SSH_PORT:-22}
 
-# Consider using CMD?
-# CMD ["/sbin/init"]
+COPY docker-entrypoint.sh /docker-entrypoint.sh
 
-ENTRYPOINT ["/sbin/init"]
+ENTRYPOINT ["/docker-entrypoint.sh"]
 
+CMD ["/sbin/init"]
