@@ -25,9 +25,12 @@ ENV SSH_PRIVATE_KEY_URL=http://www.opentlc.com/download/ansible_bootcamp/ssh_key
 # 3) Add a user and ssh public key 
 # 4) OPTIONAL, enable passwordless sudo   
 
-RUN --mount=type=secret,id=rhn,dst=/tmp/rhn_subscription.sh bash /tmp/rhn_subscription.sh && \
-    yum update -y && \
-    yum install -y openssh-server sudo && \
+# RUN --mount=type=secret,id=rhn,dst=/tmp/rhn_subscription.sh bash /tmp/rhn_subscription.sh && \
+
+RUN yum update -y && \
+    yum install -y python3 sudo && \
+    yum -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm && \
+    yum install -y openssh-server && \
     echo "RSAAuthentication yes" >> /etc/ssh/sshd_config && \
     echo "PubkeyAuthentication yes" >> /etc/ssh/sshd_config && \
     ssh-keygen -t rsa -f /etc/ssh/ssh_host_rsa_key && \
@@ -40,7 +43,7 @@ RUN --mount=type=secret,id=rhn,dst=/tmp/rhn_subscription.sh bash /tmp/rhn_subscr
     chmod 0400 /home/${SSH_USER}/.ssh/${SSH_KEY_NAME}.pem && \
     chown -R ${SSH_USER}:${SSH_USER} /home/${SSH_USER}/.ssh && \
     echo "${SSH_USER} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers && \
-    subscription-manager unregister && \
+    rm /etc/yum.repos.d/epel* && \
     yum clean all && \
     rm -rf /var/cache/yum
 
